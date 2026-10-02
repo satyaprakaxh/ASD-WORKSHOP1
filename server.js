@@ -1,32 +1,39 @@
-const express = require('express')
-const fs = require('fs').promises
-const path = require('path')
+const express = require('express');
+const productRoutes = require('./routes/productRoutes');
+const errorHandler = require('./middleware/errorHandler');
 
-const app = express()
+const app = express();
 
-const productPath = path.join(__dirname, 'db.json')
+// Parse JSON request bodies
+app.use(express.json());
 
-console.log(productPath)
+// Routes following layered structure: Route -> Middleware -> Controller -> Service -> Database
+app.use('/products', productRoutes);
 
-async function readFile() {
-    try{
-        let data = await fs.readFile(productPath, 'utf-8')
-        return JSON.parse(data)
-
-    }catch(err){
-        console.log(err);
+// Health check / welcome endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to the ASD Workshop Products API with Caching',
+    endpoints: {
+      getAllProducts: 'GET /products',
+      getProductById: 'GET /products/:id',
+      createProduct: 'POST /products',
+      updateProduct: 'PUT /products/:id',
+      patchProduct: 'PATCH /products/:id',
+      deleteProduct: 'DELETE /products/:id'
     }
+  });
+});
+
+// Centralized error handling middleware
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 }
 
-app.get("/products", async (req, res) => {
-    try{
-
-        let products = await readFile()
-        res.send(products)
-    }catch(err){
-        console.log(err);
-    }
-})
-// app.get("/products/:id",async(r))
-
-app.listen(3000)
+module.exports = app;
